@@ -73,7 +73,7 @@ public class AuthController {
     }
 
     /**
-     * Endpoint para registrar un nuevo usuario (Sin cambios)
+     * Endpoint para registrar un nuevo usuario
      * POST /auth/register
      */
     @PostMapping("/register")

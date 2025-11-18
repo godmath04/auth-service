@@ -1,12 +1,12 @@
 package com.portalperiodistico.auth_service.domain.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter; // <-- CAMBIO
-import lombok.Setter; // <-- CAMBIO
+import lombok.Getter;
+import lombok.Setter;
 import java.util.Set;
 
-@Getter // <-- CAMBIO
-@Setter // <-- CAMBIO
+@Getter
+@Setter
 @Entity
 @Table(name = "[USER]")
 public class User {
