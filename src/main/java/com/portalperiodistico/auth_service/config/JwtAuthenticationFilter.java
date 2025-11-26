@@ -19,14 +19,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @Component
-// @RequiredArgsConstructor // Alternativa a @Autowired si los campos son 'final'
+
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     // Necesitamos nuestros dos servicios clave
     @Autowired
     private JwtService jwtService;
     @Autowired
-    private UserDetailsService userDetailsService; // (Este es nuestro UserDetailsServiceImpl)
+    private UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(
