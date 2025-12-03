@@ -18,10 +18,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails; // Importante
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.BadCredentialsException;
+import java.util.Map;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -46,30 +46,45 @@ public class AuthController {
      * POST /auth/login
      */
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
+    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
+        try {
+            //0. Verificar si el usuario esta activo antes de la autenticacion
+            User user = userRepository.findByUsername(request.getUsername())
+                    .orElse(null);
+            if (user != null && !user.isActive())
+            {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(Map.of("message", "Tu cuenta ha sido desactivada por un administrador"));
+            }
 
-        // 1. Autenticar al usuario.
-        //    Esto usa UserDetailsServiceImpl y el PasswordEncoder
-        //    para verificar la contraseña.
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
-                        request.getPassword()
-                )
-        );
+            // 1. Autenticar al usuario.
+            //    Esto usa UserDetailsServiceImpl y el PasswordEncoder
+            //    para verificar la contraseña.
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(),
+                            request.getPassword()
+                    )
+            );
 
-        // 2. Si la autenticación fue exitosa, el objeto 'authentication'
-        //    contiene el UserDetails que creó nuestro servicio.
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            // 2. Si la autenticación fue exitosa, el objeto 'authentication'
+            //    contiene el UserDetails que creó nuestro servicio.
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-        // 3. Generar el token JWT usando ese UserDetails
-        String jwt = jwtService.generateToken(userDetails);
+            // 3. Generar el token JWT usando ese UserDetails
+            String jwt = jwtService.generateToken(userDetails);
 
-        // 4. Devolver el token
-        return ResponseEntity.ok(AuthResponse.builder()
-                .token(jwt)
-                .username(userDetails.getUsername())
-                .build());
+            // 4. Devolver el token
+            return ResponseEntity.ok(AuthResponse.builder()
+                    .token(jwt)
+                    .username(userDetails.getUsername())
+                    .build());
+        } catch (BadCredentialsException e) {
+            System.out.println("CAUGHT BAD CREDENTIAL EXCEPTION: " + e.getMessage());
+            // Manejar usuario/contraseña incorrectos
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(java.util.Map.of("message", "Usuario o contraseña incorrectos"));
+        }
     }
 
     /**
@@ -101,6 +116,26 @@ public class AuthController {
         userRepository.save(user);
 
         return ResponseEntity.status(HttpStatus.CREATED).body("Usuario registrado exitosamente.");
+    }
+
+    /**
+     * Obtener informacion basica
+     * GET /auth/users/{id}
+     */
+    @GetMapping("/users/{id}")
+    public ResponseEntity<?>
+    getUserBasicInfo(@PathVariable Integer id) {
+        User user = userRepository.findById(id).orElse(null);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        Map<String, Object> userInfo = Map.of(
+                "userId", user.getUserId(),
+                "username", user.getUsername(),
+                "firstName", user.getFirstName() != null ? user.getFirstName() : "",
+                "lastName", user.getLastName() != null ? user.getLastName() : ""
+        );
+        return ResponseEntity.ok(userInfo);
     }
 
 }
